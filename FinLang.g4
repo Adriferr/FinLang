@@ -22,27 +22,28 @@ declaracao
     ;
 
 tipo
-    : 'int'
-    | 'real'
-    | 'bool'
-    | 'texto'
+    : INT
+    | REAL
+    | BOOL_T
+    | TEXTO
     ;
+
 
 atribuicao
     : ID '=' expr
     ;
 
 condicional
-    : 'se' expr comando ('senao' comando)?
+    : SE expr comando (SENAO comando)?
     ;
 
 repeticao
-    : 'repete' '(' ID '=' expr 'até' expr ')' comando
+    : REPETE '(' ID '=' expr ATE expr ')' comando
     ;
 
 entradaSaida
-    : 'escreva' '(' expr ')'
-    | 'leia' '(' ID ')'
+    : ESCREVA '(' expr ')'
+    | LEIA '(' ID ')'
     ;
 
 expr
@@ -56,10 +57,27 @@ expr
     | ID
     ;
 
+
 // ---------------------------
 // LEXER
 // ---------------------------
 
+// PALAVRAS-RESERVADAS (devem vir antes de ID)
+INT     : 'int';
+REAL    : 'real';
+BOOL_T  : 'bool';
+TEXTO   : 'texto';
+
+SE      : 'se';
+SENAO   : 'senao';
+
+REPETE  : 'repete';
+ATE     : 'até';
+
+ESCREVA : 'escreva';
+LEIA    : 'leia';
+
+// Tokens gerais
 ID : [a-zA-Z_][a-zA-Z0-9_]* ;
 
 NUM_INT  : [0-9]+ ;
@@ -74,5 +92,3 @@ STRING
 COMMENT : '//' ~[\r\n]* -> skip ;
 
 WS : [ \t\r\n]+ -> skip ;
-
-EMPTY : '[]' -> skip ;

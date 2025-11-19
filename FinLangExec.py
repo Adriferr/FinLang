@@ -66,13 +66,23 @@ class Executor(FinLangVisitor):
             self.memoria[nome] += 1
 
     def visitEntradaSaida(self, ctx):
-        if ctx.getText().startswith("escreva"):
-            val = self.visit(ctx.expr(0))
-            print(val)
-        else:
+        # escreva(expr)
+        if ctx.ESCREVA():
+            valor = self.visit(ctx.expr())
+            print(valor)
+            return None
+
+        # leia(ID)
+        if ctx.LEIA():
             nome = ctx.ID().getText()
-            entrada = input(f"{nome}: ")
+            entrada = input(f"Entrada ({nome}): ")
             self.memoria[nome] = self.converte_input(entrada)
+            return None
+
+
+
+
+
 
     def converte_input(self, txt):
         # converte automaticamente para int, real, bool, ou texto
@@ -87,6 +97,20 @@ class Executor(FinLangVisitor):
         if txt.lower() == "falso":
             return False
         return txt  # string pura
+
+    def visitNUM_INT(self, ctx):
+        return int(ctx.getText())
+
+    def visitNUM_REAL(self, ctx):
+        return float(ctx.getText())
+
+    def visitSTRING(self, ctx):
+        return ctx.getText().strip('"')
+
+    def visitBOOL(self, ctx):
+        return True if ctx.getText() == "verdadeiro" else False
+
+
 
     # -------------------------
     # EXPRESSÕES
