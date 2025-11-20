@@ -170,8 +170,8 @@ if __name__ == "__main__":
         executar_arquivo(sys.argv[1])
     else:
         # Executa teste padrão
-        print("Uso: python executor_final.py <arquivo.fin>")
-        print("\nOu importe: from executor_final import executar")
+        print("Uso: python interpretador.py <arquivo.fin>")
+        print("\nOu importe: from interpretador import executar")
         print("\nExecutando teste padrão...")
         print("="*60)
         

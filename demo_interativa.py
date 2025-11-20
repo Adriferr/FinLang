@@ -96,9 +96,10 @@ escreva("")
 
 // ANÁLISE
 escreva("--- ANÁLISE ---")
-se saldo
+se saldo > 0
     escreva("[OK] Você teve saldo POSITIVO! Continue assim!")
-    
+senao
+    escreva("[ALERTA] Você teve saldo NEGATIVO! Reavalie seus gastos!")
 int zero = 0
 se zero
     escreva("Não executado")

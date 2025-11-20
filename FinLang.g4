@@ -14,12 +14,7 @@ comando
     | condicional
     | repeticao
     | entradaSaida
-    | bloco
     | expr
-    ;
-
-bloco
-    : '{' (comando)* '}'
     ;
 
 declaracao
@@ -39,7 +34,7 @@ atribuicao
     ;
 
 condicional
-    : SE '(' expr ')' comando (SENAO comando)?
+    : SE expr comando (SENAO comando)?
     ;
 
 repeticao
@@ -52,17 +47,14 @@ entradaSaida
     ;
 
 expr
-    : expr op=('*' | '/' ) expr                     # ExprMult
-    | expr op=('+' | '-') expr                      # ExprAdd
-    | expr op=('==' | '!=' | '<' | '>' | '<=' | '>=') expr  # ExprRel
-    | expr op=('&&' | '||') expr                    # ExprLogic
-    | '!' expr                                      # ExprNot
-    | '(' expr ')'                                  # ExprParen
-    | BOOL                                          # ExprBool
-    | NUM_INT                                       # ExprInt
-    | NUM_REAL                                      # ExprReal
-    | STRING                                        # ExprString
-    | ID                                            # ExprId
+    : expr op=('*' | '/' ) expr
+    | expr op=('+' | '-') expr
+    | '(' expr ')'
+    | BOOL
+    | NUM_INT
+    | NUM_REAL
+    | STRING
+    | ID
     ;
 
 
