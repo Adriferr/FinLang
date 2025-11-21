@@ -98,7 +98,7 @@ fator
 // LEXER
 // ---------------------------
 
-// palavras-reservadas (em português)
+// palavras-reservadas
 INT     : 'inteiro';
 REAL    : 'real';
 BOOL_T  : 'bool';
