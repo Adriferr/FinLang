@@ -259,7 +259,7 @@ Saída esperada:
 
 | Requisito | Status | Descrição |
 |-----------|--------|-----------|
-| Tipos de Variáveis | ✅ | 4 tipos (int, real, bool, texto) |
+| Tipos de Variáveis | ✅ | 4 tipos (inteiro, real, bool, texto) |
 | Estrutura Condicional | ✅ | se...senao (if...else) |
 | Estrutura de Repetição | ✅ | repete(inic; cond; incr)... (for) |
 | Expressões Aritméticas | ✅ | +, -, *, / com precedência |
