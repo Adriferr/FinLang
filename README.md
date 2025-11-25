@@ -48,9 +48,9 @@ FinLang é uma linguagem de programação simples desenvolvida usando ANTLR4, cr
 ## 🚀 Como Usar
 
 ### 1. Executar a Demonstração Completa (Automática)
-Demonstra todos os requisitos com valores pré-definidos:
+Demonstra todos os requisitos com valores pré-definidos, compila input.fin e gera arquivo.py
 ```bash
-python demo_completa.py
+python main.py
 ```
 
 ### 2. Executar a Demonstração Interativa (com entrada de dados)
@@ -64,83 +64,78 @@ Este programa demonstra o comando `leia()` pedindo:
 - Despesas (aluguel, alimentação, transporte, etc)
 - Calcula e mostra o saldo final
 
-### 3. Executar um Arquivo .fin
-```bash
-python interpretador.py teste_completo.fin
-```
-
-Ou qualquer outro arquivo:
-```bash
-python interpretador.py seu_arquivo.fin
-```
 
 ### 3. Usar como Biblioteca Python
 ```python
 from interpretador import executar
 
-# Executar código diretamente
+# Executar código diretamente pelo interpretador
 executar("""
-int x = 10
-int y = 20
-escreva(x + y)
+inteiro x = 10;
+inteiro y = 20;
+escreva(x + y);
 """)
 
-# Ou executar um arquivo
-from interpretador import executar_arquivo
-executar_arquivo('teste_completo.fin')
+# Ou executar um arquivo pelo compilador
+from FinLangCompilador import FinLangCompilador
+codigo = FileStream("input.fin", encoding="utf-8")
 ```
 
 ## 📝 Sintaxe da Linguagem
 
 ### Declaração de Variáveis
 ```finlang
-int idade = 25
-real salario = 5500.50
-bool ativo = verdadeiro
-texto nome = "Maria Silva"
+inteiro idade = 25;
+real salario = 5500.50;
+bool ativo = verdadeiro;
+texto nome = "Maria Silva";
 ```
 
 ### Atribuições
 ```finlang
-idade = 26
-salario = 6000.00
+idade = 26;
+salario = 6000.00;
 ```
 
 ### Expressões Aritméticas
 ```finlang
-int resultado = 2 + 3 * 4  // Resultado: 14 (precedência correta)
-int outro = (2 + 3) * 4     // Resultado: 20 (parênteses)
+inteiro resultado = 2 + 3 * 4;  // Resultado: 14 (precedência correta)
+inteiro outro = (2 + 3) * 4;     // Resultado: 20 (parênteses)
 ```
 
 ### Estrutura Condicional
 ```finlang
-se condicao
-    escreva("Verdadeiro")
-senao
-    escreva("Falso")
+se (condicao){
+    escreva("Verdadeiro");
+}
+senao{
+      escreva("Falso");
+}
 ```
 
 ### Estrutura de Repetição
 ```finlang
-repete(i = 1 até 10) escreva(i)
+repete(i = 1; i<10; i++){
+    escreva(i);
+}
 ```
 
 ### Entrada e Saída
 ```finlang
-escreva("Digite seu nome:")
-leia(nome)
-escreva(nome)
+escreva("Digite seu nome:");
+leia(nome);
+escreva(nome);
 
 // O comando leia() converte automaticamente baseado no tipo da variável
-int idade = 0
-escreva("Digite sua idade:")
-leia(idade)
-escreva(idade)
+inteiro idade = 0;
+escreva("Digite sua idade:");
+leia(idade);
+escreva(idade);
 
-real salario = 0.0
-escreva("Digite seu salário:")
-leia(salario)
-escreva(salario)
+real salario = 0.0;
+escreva("Digite seu salário:");
+leia(salario);
+escreva(salario);
 ```
 
 **Nota**: O comando `leia()` exige que a variável já tenha sido declarada previamente.
@@ -148,22 +143,25 @@ escreva(salario)
 ### Comentários
 ```finlang
 // Este é um comentário de linha
-int x = 10  // Comentário no final da linha
+inteiro x = 10;  // Comentário no final da linha
 ```
 
 ## 📂 Estrutura do Projeto
 
 ```
-FinLang-main/
+A3 FinLang/
 │
 ├── FinLang.g4              # Gramática ANTLR4
 ├── FinLangLexer.py         # Lexer gerado pelo ANTLR
+├── FinLangListener.py      # Listener gerado pelo ANTLR
 ├── FinLangParser.py        # Parser gerado pelo ANTLR
 ├── FinLangVisitor.py       # Visitor gerado pelo ANTLR
 │
+├── FinLangCompilador.py    # ⭐ Compilador da linguagem
 ├── interpretador.py        # ⭐ Interpretador da linguagem
-├── demo_completa.py        # ⭐ Demonstração de todos os requisitos
-├── teste_completo.fin      # ⭐ Arquivo de teste completo
+├── demo_interativa.py      # ⭐ Demonstração interativa da linguagem
+├── input.fin               # ⭐ Arquivo contendo a linguagem criada
+├── main.py                 # ⭐ Demonstração de todos os requisitos e geração do arquivo.py
 │
 └── README.md               # Este arquivo
 ```
@@ -173,36 +171,41 @@ FinLang-main/
 - **`interpretador.py`**: Motor de execução da linguagem FinLang
   - Classe `ExecutorFinal`: Implementa o interpretador
   - Função `executar(codigo)`: Executa código FinLang
-  - Função `executar_arquivo(caminho)`: Executa arquivos .fin
-  
-- **`demo_completa.py`**: Script de demonstração que valida todos os requisitos
 
-- **`teste_completo.fin`**: Programa exemplo que demonstra todos os recursos
+- **`FinLangCompilador.py`**: Compilador da linguagem FinLang
+  - Classe `FinLangCompilador`: Implementa o compilador
+  - Função `visitPrograma`: Passa pela árvore sintática da gramática FinLang
+  
+- **`main.py`**: Script de demonstração que valida todos os requisitos e gera "saida.py"
+
+- **`input.fin`**: Programa exemplo que demonstra todos os recursos da linguagem
 
 ## 🎯 Exemplos Práticos
 
 ### Exemplo 1: Cálculo de Área
 ```finlang
-int base = 5
-int altura = 4
-int area = base * altura / 2
-escreva("Área do triângulo:")
-escreva(area)
+inteiro base = 5;
+inteiro altura = 4;
+inteiro area = base * altura / 2;
+escreva("Área do triângulo:");
+escreva(area);
 ```
 
 ### Exemplo 2: Loop com Tabuada
 ```finlang
-escreva("Tabuada do 5:")
-repete(i = 1 até 10) escreva(5 * i)
+escreva("Tabuada do 5:");
+repete(i = 1; i<10; i++){
+    escreva(5 * i);
+}
 ```
 
 ### Exemplo 3: Cálculo de Desconto
 ```finlang
-real preco = 100.00
-real desconto = 15.00
-real precoFinal = preco - preco * desconto / 100
-escreva("Preço com desconto:")
-escreva(precoFinal)
+real preco = 100.00;
+real desconto = 15.00;
+real precoFinal = preco - preco * desconto / 100;
+escreva("Preço com desconto:");
+escreva(precoFinal);
 ```
 
 ## 🔍 Análise Técnica
@@ -220,6 +223,13 @@ O interpretador implementa o padrão Visitor para:
 - Gerenciar memória (variáveis)
 - Controlar fluxo de execução
 
+### Compilador
+O compilador importa o FinLangVisitor para:
+- Carregar e iniciar o lexer e o parser
+- Executar o Visitor para converter FinLang para Python
+- Gerenciar erros de compilação
+- Salva a conversão em um arquivo.py
+
 ### Características
 - ✅ Tipagem declarativa
 - ✅ Escopo básico de variáveis
@@ -229,10 +239,10 @@ O interpretador implementa o padrão Visitor para:
 
 ## 🧪 Teste Completo
 
-Execute `demo_completa.py` para ver uma demonstração de todos os requisitos:
+Execute `main.py` para ver uma demonstração de todos os requisitos:
 
 ```bash
-python demo_completa.py
+python main.py
 ```
 
 Saída esperada:
@@ -243,6 +253,7 @@ Saída esperada:
 - Loops de repetição
 - Entrada e saída
 - Comentários sendo ignorados
+- Arquivo "saida.py" gerado
 
 ## 📊 Checklist de Conformidade
 
@@ -260,7 +271,7 @@ Saída esperada:
 
 - **Python 3.x**
 - **ANTLR 4.13.2**
-- **Padrão Visitor** para interpretação
+- **Padrão Visitor** para interpretação e compilação
 
 ## 📖 Referências
 
