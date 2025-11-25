@@ -261,7 +261,7 @@ Saída esperada:
 |-----------|--------|-----------|
 | Tipos de Variáveis | ✅ | 4 tipos (int, real, bool, texto) |
 | Estrutura Condicional | ✅ | se...senao (if...else) |
-| Estrutura de Repetição | ✅ | repete...até (for) |
+| Estrutura de Repetição | ✅ | repete(inic; cond; incr)... (for) |
 | Expressões Aritméticas | ✅ | +, -, *, / com precedência |
 | Atribuições | ✅ | Comando = implementado |
 | Entrada e Saída | ✅ | escreva e leia |
