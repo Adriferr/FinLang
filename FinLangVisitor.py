@@ -19,6 +19,11 @@ class FinLangVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by FinLangParser#bloco.
+    def visitBloco(self, ctx:FinLangParser.BlocoContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by FinLangParser#declaracao.
     def visitDeclaracao(self, ctx:FinLangParser.DeclaracaoContext):
         return self.visitChildren(ctx)
@@ -49,8 +54,38 @@ class FinLangVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by FinLangParser#incremento.
+    def visitIncremento(self, ctx:FinLangParser.IncrementoContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by FinLangParser#expr.
     def visitExpr(self, ctx:FinLangParser.ExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by FinLangParser#exprLogico.
+    def visitExprLogico(self, ctx:FinLangParser.ExprLogicoContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by FinLangParser#exprRelacional.
+    def visitExprRelacional(self, ctx:FinLangParser.ExprRelacionalContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by FinLangParser#exprAritmetica.
+    def visitExprAritmetica(self, ctx:FinLangParser.ExprAritmeticaContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by FinLangParser#termo.
+    def visitTermo(self, ctx:FinLangParser.TermoContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by FinLangParser#fator.
+    def visitFator(self, ctx:FinLangParser.FatorContext):
         return self.visitChildren(ctx)
 
 

@@ -7,30 +7,39 @@ FinLang é uma linguagem de programação simples desenvolvida usando ANTLR4, cr
 ## ✅ Requisitos Implementados
 
 ### 1. Tipos de Variáveis (4 tipos)
-- `int` - Números inteiros
+- `inteiro` - Números inteiros
 - `real` - Números reais (ponto flutuante)
 - `bool` - Booleanos (verdadeiro/falso)
 - `texto` - Strings
 
-### 2. Estrutura Condicional
+### 2. Bloco de código
+- { comando }
+
+### 3. Estrutura Condicional
 - `se ... senao` (equivalente a if...else)
 
-### 3. Estrutura de Repetição
-- `repete(...até...)` (equivalente a for)
+### 4. Estrutura de Repetição
+- `repete(inicialização; condição; iteração)` (equivalente a for)
 
-### 4. Expressões Aritméticas
+### 5. Expressões Aritméticas
 - Operadores: `+`, `-`, `*`, `/`
 - **Precedência correta** implementada na gramática
 
-### 5. Atribuições
+### 6. Atribuições
 - Comando de atribuição com `=`
 - Verificação básica de escopo
 
-### 6. Entrada e Saída
+### 7. Incremento e Decremento
+- ++ID (++i)
+- --ID  (--i)
+- ID++ (i++)
+- ID-- (i--)
+
+### 8. Entrada e Saída
 - `escreva(expr)` - Imprime valores na tela
 - `leia(variavel)` - Lê entrada do usuário
 
-### 7. Tokens Descartados
+### 9. Tokens Descartados
 - Espaços em branco
 - Tabs (`\t`)
 - Quebras de linha (`\n`)

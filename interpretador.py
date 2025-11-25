@@ -1,95 +1,222 @@
+# interpretador.py
 from antlr4 import *
 from FinLangLexer import FinLangLexer
 from FinLangParser import FinLangParser
 
 class ExecutorFinal:
     def __init__(self):
-        self.memoria = {}  # armazena variáveis
-        self.tipos = {}    # armazena tipos das variáveis
+        self.memoria = {}  # nome -> valor
+        self.tipos = {}    # nome -> tipo textual ('inteiro','real','bool','texto')
 
+    # entry point: recebe ctx.programa()
     def executar(self, ctx):
-        """Executa o programa"""
         return self.visitPrograma(ctx)
 
-    def visitPrograma(self, ctx):
+    # Programa: lista de comandos
+    def visitPrograma(self, ctx: FinLangParser.ProgramaContext):
         resultado = None
-        for child in ctx.children:
-            if hasattr(child, 'getRuleIndex'):
-                if isinstance(child, FinLangParser.ComandoContext):
-                    resultado = self.visitComando(child)
+        for cmd in ctx.comando():
+            resultado = self.visitComando(cmd)
         return resultado
 
-    def visitComando(self, ctx):
+    # Dispatch para cada comando possível
+    def visitComando(self, ctx: FinLangParser.ComandoContext):
         if ctx.declaracao():
             return self.visitDeclaracao(ctx.declaracao())
-        elif ctx.atribuicao():
+        if ctx.atribuicao():
             return self.visitAtribuicao(ctx.atribuicao())
-        elif ctx.condicional():
-            return self.visitCondicional(ctx.condicional())
-        elif ctx.repeticao():
-            return self.visitRepeticao(ctx.repeticao())
-        elif ctx.entradaSaida():
+        if ctx.incremento():
+            return self.visitIncremento(ctx.incremento())
+        if ctx.entradaSaida():
             return self.visitEntradaSaida(ctx.entradaSaida())
-        elif ctx.expr():
-            return self.visitExpr(ctx.expr())
+        if ctx.condicional():
+            return self.visitCondicional(ctx.condicional())
+        if ctx.repeticao():
+            return self.visitRepeticao(ctx.repeticao())
+        if ctx.bloco():
+            return self.visitBloco(ctx.bloco())
         return None
 
-    def visitDeclaracao(self, ctx):
-        tipo = ctx.tipo().getText()
-        nome = ctx.ID().getText()
-        self.tipos[nome] = tipo
-        
-        if ctx.expr():
-            valor = self.visitExpr(ctx.expr())
-        else:
-            valor = {"int": 0, "real": 0.0, "bool": False, "texto": ""}[tipo]
-        
-        self.memoria[nome] = valor
-        return valor
+    # Bloco: { comando* }
+    def visitBloco(self, ctx: FinLangParser.BlocoContext):
+        resultado = None
+        for cmd in ctx.comando():
+            resultado = self.visitComando(cmd)
+        return resultado
 
-    def visitAtribuicao(self, ctx):
+    # Declaração: tipo ID = expr
+    def visitDeclaracao(self, ctx: FinLangParser.DeclaracaoContext):
+        tipo_txt = ctx.tipo().getText()  # 'inteiro','real','bool','texto'
         nome = ctx.ID().getText()
         valor = self.visitExpr(ctx.expr())
+        # salvar tipo e valor
+        self.tipos[nome] = tipo_txt
+        self.memoria[nome] = self._convert_value_por_tipo(valor, tipo_txt)
+        return self.memoria[nome]
+
+    # Atribuição: ID = expr
+    def visitAtribuicao(self, ctx: FinLangParser.AtribuicaoContext):
+        nome = ctx.ID().getText()
+        valor = self.visitExpr(ctx.expr())
+        if nome in self.tipos:
+            valor = self._convert_value_por_tipo(valor, self.tipos[nome])
         self.memoria[nome] = valor
         return valor
 
-    def visitCondicional(self, ctx):
-        condicao = self.visitExpr(ctx.expr())
-        if condicao:
+    # Incremento: ++ID | --ID | ID++ | ID--
+    def visitIncremento(self, ctx: FinLangParser.IncrementoContext):
+        txt = ctx.getText()
+        # remover espaços só por segurança
+        txt = txt.strip()
+        if txt.startswith("++"):
+            nome = txt[2:]
+            self._ensure_var_exists(nome)
+            self.memoria[nome] = self._numeric_add(self.memoria[nome], 1)
+            return self.memoria[nome]
+        if txt.startswith("--"):
+            nome = txt[2:]
+            self._ensure_var_exists(nome)
+            self.memoria[nome] = self._numeric_add(self.memoria[nome], -1)
+            return self.memoria[nome]
+        if txt.endswith("++"):
+            nome = txt[:-2]
+            self._ensure_var_exists(nome)
+            val = self.memoria[nome]
+            self.memoria[nome] = self._numeric_add(val, 1)
+            return val  # post-increment returns old value if needed
+        if txt.endswith("--"):
+            nome = txt[:-2]
+            self._ensure_var_exists(nome)
+            val = self.memoria[nome]
+            self.memoria[nome] = self._numeric_add(val, -1)
+            return val
+
+        return None
+
+    # Condicional: se (expr) comando (senao comando)?
+    def visitCondicional(self, ctx: FinLangParser.CondicionalContext):
+        cond_val = self.visitExpr(ctx.expr())
+        if cond_val:
             return self.visitComando(ctx.comando(0))
-        elif ctx.SENAO() and len(ctx.comando()) > 1:
+        # existe senao?
+        if ctx.SENAO() and len(ctx.comando()) > 1:
             return self.visitComando(ctx.comando(1))
         return None
 
-    def visitRepeticao(self, ctx):
-        nome = ctx.ID().getText()
-        inicial = self.visitExpr(ctx.expr(0))
-        limite = self.visitExpr(ctx.expr(1))
-        
-        self.memoria[nome] = inicial
+    # Repetição: repete '(' (declaracao | atribuicao) ';' expr ';' (atribuicao | incremento) ')' comando
+    def visitRepeticao(self, ctx: FinLangParser.RepeticaoContext):
+        # detectar inicialização (declaracao ou atribuicao)
+        init_val = None
+        init_decl = ctx.declaracao()
+        atr_list = ctx.atribuicao()  # pode ser lista
+        init_ctx = None
+        if init_decl:
+            init_ctx = init_decl
+        elif atr_list:
+            # se houver ao menos uma atribuicao, a primeira aparece como inicialização
+            if isinstance(atr_list, list) and len(atr_list) >= 1:
+                init_ctx = atr_list[0]
+            else:
+                init_ctx = atr_list  # caso seja único
+
+        if init_ctx is not None:
+            # executar inicialização
+            if isinstance(init_ctx, FinLangParser.DeclaracaoContext):
+                self.visitDeclaracao(init_ctx)
+            else:
+                self.visitAtribuicao(init_ctx)
+
+        # condição (expr no meio)
+        expr_list = ctx.expr()
+        if expr_list:
+            # pegar a primeira expressão presente
+            cond_ctx = expr_list[0]
+        else:
+            # se por algum motivo não houver, tratar como True
+            cond_ctx = None
+
+        # detectar incremento (pode ser incremento ou atribuicao)
+        inc_ctx = None
+        inc_nodes = ctx.incremento()
+        # ctx.atribuicao() pode ter duas entradas: a primeira foi init, a segunda pode ser incremento
+        if inc_nodes:
+            # incremento presente
+            if isinstance(inc_nodes, list):
+                inc_ctx = inc_nodes[0]
+            else:
+                inc_ctx = inc_nodes
+        else:
+            # verificar se há segunda atribuicao
+            if atr_list:
+                if isinstance(atr_list, list) and len(atr_list) >= 2:
+                    inc_ctx = atr_list[-1]
+                # else: apenas a inicialização existia;
+
+        # corpo do loop: último comando do ctx.comando()
+        body_cmds = ctx.comando()
+        if body_cmds:
+            body_ctx = body_cmds[-1]
+        else:
+            body_ctx = None
+
         resultado = None
-        while self.memoria[nome] <= limite:
-            resultado = self.visitComando(ctx.comando())
-            self.memoria[nome] += 1
+
+        # função auxiliar para avaliar condição
+        def cond_true():
+            if cond_ctx is None:
+                return True
+            return bool(self.visitExpr(cond_ctx))
+
+        # executar loop
+        while cond_true():
+            # executar corpo
+            if body_ctx:
+                resultado = self.visitComando(body_ctx)
+            # executar incremento
+            if inc_ctx:
+                # inc_ctx pode ser atribuicao ou incremento
+                # checar tipo por texto
+                if hasattr(inc_ctx, 'getText') and inc_ctx.getText().strip().startswith(('++','--')) or hasattr(inc_ctx, 'INCREMENTO'):
+                    # trata como incremento via visitIncremento
+                    self.visitIncremento(inc_ctx)
+                else:
+                    # tratá-lo como atribuicao
+                    # se for do tipo FinLangParser.AtribuicaoContext, chamar visitAtribuicao
+                    # usamos isinstance check via duck-typing: se tiver ID() e expr()
+                    if hasattr(inc_ctx, 'ID') and hasattr(inc_ctx, 'expr'):
+                        try:
+                            self.visitAtribuicao(inc_ctx)
+                        except Exception:
+                            self.visitComando(inc_ctx)
+                    else:
+                        try:
+                            self.visitIncremento(inc_ctx)
+                        except Exception:
+                            pass
+
+            # evitar loops infinitos sem progresso
+            if not cond_true():
+                break
+
         return resultado
 
-    def visitEntradaSaida(self, ctx):
+    # Entrada / Saída
+    def visitEntradaSaida(self, ctx: FinLangParser.EntradaSaidaContext):
         if ctx.ESCREVA():
-            valor = self.visitExpr(ctx.expr())
-            print(valor)
-            return valor
-        elif ctx.LEIA():
+            val = self.visitExpr(ctx.expr())
+            print(val)
+            return val
+        if ctx.LEIA():
             nome = ctx.ID().getText()
             entrada = input(f"Entrada ({nome}): ")
-            
             if nome in self.tipos:
                 tipo = self.tipos[nome]
-                if tipo == "int":
+                if tipo == "inteiro":
                     self.memoria[nome] = int(entrada)
                 elif tipo == "real":
                     self.memoria[nome] = float(entrada)
                 elif tipo == "bool":
-                    self.memoria[nome] = entrada.lower() in ['verdadeiro', 'true', '1']
+                    self.memoria[nome] = entrada.lower() in ('verdadeiro','true','1')
                 else:
                     self.memoria[nome] = entrada
             else:
@@ -97,63 +224,225 @@ class ExecutorFinal:
             return self.memoria[nome]
         return None
 
-    def visitExpr(self, ctx):
+    # ---------------------------
+    # EXPRESSÕES (avaliadores)
+    # ---------------------------
+
+    def visitExpr(self, ctx: FinLangParser.ExprContext):
+        # Expr -> exprLogico
+        return self.visitExprLogico(ctx.exprLogico())
+
+    def visitExprLogico(self, ctx: FinLangParser.ExprLogicoContext):
+        # exprRelacional ( (AND | OR) exprRelacional )*
+        rels = ctx.exprRelacional()
+        # coletar ops varrendo children
+        ops = []
+        for i in range(ctx.getChildCount()):
+            ch = ctx.getChild(i)
+            txt = ch.getText()
+            if txt == 'e' or txt == 'ou':
+                ops.append(txt)
+        # avaliação left-to-right com short-circuit
+        value = self.visitExprRelacional(rels[0])
+        for i, op in enumerate(ops):
+            right = self.visitExprRelacional(rels[i+1])
+            if op == 'e':
+                value = bool(value and right)
+            else:
+                value = bool(value or right)
+        return value
+
+    def visitExprRelacional(self, ctx: FinLangParser.ExprRelacionalContext):
+        # exprAritmetica ( (MENOR | MAIOR | MENOR_IGUAL | MAIOR_IGUAL | IGUAL | DIF) exprAritmetica )*
+        terms = ctx.exprAritmetica()
+        # coletar ops varrendo children
+        ops = []
+        for i in range(ctx.getChildCount()):
+            t = ctx.getChild(i).getText()
+            if t in ('<','>','<=','>=','==','!='):
+                ops.append(t)
+        if not ops:
+            return self.visitExprAritmetica(terms[0])
+        # implementar comparação encadeada como a semântica usual (a < b < c) -> (a<b and b<c)
+        vals = [self.visitExprAritmetica(t) for t in terms]
+        result = True
+        for i, op in enumerate(ops):
+            a = vals[i]
+            b = vals[i+1]
+            if op == '<':
+                cmp = (a < b)
+            elif op == '>':
+                cmp = (a > b)
+            elif op == '<=':
+                cmp = (a <= b)
+            elif op == '>=':
+                cmp = (a >= b)
+            elif op == '==':
+                cmp = (a == b)
+            elif op == '!=':
+                cmp = (a != b)
+            else:
+                cmp = False
+            result = result and cmp
+            if not result:
+                break
+        return result
+
+    def visitExprAritmetica(self, ctx: FinLangParser.ExprAritmeticaContext):
+        # termo ( (MAIS | MENOS) termo )*
+        termos = ctx.termo()
+        ops = []
+        for i in range(ctx.getChildCount()):
+            t = ctx.getChild(i).getText()
+            if t in ('+','-'):
+                ops.append(t)
+        # sem operador: apenas primeiro termo
+        if not ops:
+            return self.visitTermo(termos[0])
+        # calcular left-to-right
+        value = self.visitTermo(termos[0])
+        for i, op in enumerate(ops):
+            right = self.visitTermo(termos[i+1])
+            if op == '+':
+                value = self._plus(value, right)
+            else:
+                value = self._minus(value, right)
+        return value
+
+    def visitTermo(self, ctx: FinLangParser.TermoContext):
+        # fator ( (MULT | DIV) fator )*
+        fatores = ctx.fator()
+        ops = []
+        for i in range(ctx.getChildCount()):
+            t = ctx.getChild(i).getText()
+            if t in ('*','/'):
+                ops.append(t)
+        if not ops:
+            return self.visitFator(fatores[0])
+        value = self.visitFator(fatores[0])
+        for i, op in enumerate(ops):
+            right = self.visitFator(fatores[i+1])
+            if op == '*':
+                value = value * right
+            else:
+                # proteção contra divisão por zero (retorna 0)
+                try:
+                    value = value / right
+                except Exception:
+                    value = 0
+        return value
+
+    def visitFator(self, ctx: FinLangParser.FatorContext):
+        # '(' expr ')' | BOOL | NUM_REAL | NUM_INT | STRING | ID
+        if ctx.getChildCount() == 3 and ctx.getChild(0).getText() == '(':
+            return self.visitExpr(ctx.expr())
+        if ctx.BOOL():
+            txt = ctx.BOOL().getText()
+            return txt == 'verdadeiro'
+        if ctx.NUM_REAL():
+            return float(ctx.NUM_REAL().getText())
         if ctx.NUM_INT():
             return int(ctx.NUM_INT().getText())
-        elif ctx.NUM_REAL():
-            return float(ctx.NUM_REAL().getText())
-        elif ctx.BOOL():
-            return ctx.BOOL().getText() == "verdadeiro"
-        elif ctx.STRING():
-            return ctx.STRING().getText().strip('"')
-        elif ctx.ID():
+        if ctx.STRING():
+            s = ctx.STRING().getText()
+            # remover aspas externas
+            if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+                return s[1:-1]
+            return s
+        if ctx.ID():
             nome = ctx.ID().getText()
             if nome in self.memoria:
                 return self.memoria[nome]
+            # variável não inicializada -> 0 por padrão
             return 0
-        elif ctx.getChildCount() == 3 and ctx.getChild(0).getText() == '(':
-            return self.visitExpr(ctx.expr(0))
-        elif ctx.op:
-            left = self.visitExpr(ctx.expr(0))
-            right = self.visitExpr(ctx.expr(1))
-            op = ctx.op.text
-            
-            if op == '+': return left + right
-            elif op == '-': return left - right
-            elif op == '*': return left * right
-            elif op == '/': return left / right if right != 0 else 0
-        
-        return 0
+        return None
 
+    # ---------------------------
+    # UTILITÁRIOS
+    # ---------------------------
+    def _convert_value_por_tipo(self, value, tipo_txt):
+        if tipo_txt == 'inteiro':
+            try:
+                return int(value)
+            except Exception:
+                return 0
+        if tipo_txt == 'real':
+            try:
+                return float(value)
+            except Exception:
+                return 0.0
+        if tipo_txt == 'bool':
+            return bool(value)
+        if tipo_txt == 'texto':
+            return str(value)
+        return value
+
+    def _ensure_var_exists(self, nome):
+        if nome not in self.memoria:
+            # inicializar com 0 (inteiro) por padrão se desconhecido
+            self.memoria[nome] = 0
+
+    def _numeric_add(self, val, delta):
+        try:
+            return val + delta
+        except Exception:
+            # tentar converter para número
+            try:
+                return int(val) + delta
+            except Exception:
+                try:
+                    return float(val) + delta
+                except Exception:
+                    return val
+
+    def _plus(self, a, b):
+        if isinstance(a, str) or isinstance(b, str):
+            return str(a) + str(b)
+        try:
+            return a + b
+        except Exception:
+            try:
+                return int(a) + int(b)
+            except:
+                try:
+                    return float(a) + float(b)
+                except:
+                    return 0
+
+    def _minus(self, a, b):
+        try:
+            return a - b
+        except Exception:
+            try:
+                return int(a) - int(b)
+            except:
+                try:
+                    return float(a) - float(b)
+                except:
+                    return 0
+
+# helpers para executar a partir de texto/arquivo
 def executar(codigo):
-    """Executa código FinLang a partir de uma string"""
     input_stream = InputStream(codigo)
     lexer = FinLangLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = FinLangParser(stream)
     tree = parser.programa()
-    
     executor = ExecutorFinal()
     executor.executar(tree)
 
 def executar_arquivo(caminho_arquivo):
-    """Executa um arquivo .fin"""
     try:
         with open(caminho_arquivo, 'r', encoding='utf-8') as f:
             codigo = f.read()
-        
         print("="*60)
         print(f"EXECUTANDO: {caminho_arquivo}")
         print("="*60)
-        print()
-        
         executar(codigo)
-        
         print()
         print("="*60)
         print("EXECUÇÃO CONCLUÍDA COM SUCESSO!")
         print("="*60)
-        
     except FileNotFoundError:
         print(f"❌ Erro: Arquivo '{caminho_arquivo}' não encontrado")
     except Exception as e:
@@ -161,23 +450,18 @@ def executar_arquivo(caminho_arquivo):
         import traceback
         traceback.print_exc()
 
-# Permite execução via linha de comando ou importação
 if __name__ == "__main__":
     import sys
-    
     if len(sys.argv) > 1:
-        # Executa arquivo passado como argumento
         executar_arquivo(sys.argv[1])
     else:
-        # Executa teste padrão
-        print("Uso: python interpretador.py <arquivo.fin>")
-        print("\nOu importe: from interpretador import executar")
-        print("\nExecutando teste padrão...")
-        print("="*60)
-        
-        executar("""
-int x = 10
-escreva(x)
-escreva(x + 5)
-repete(i = 1 até 3) escreva(i)
-""")
+        print("Teste rápido do interpretador:")
+        sample = """
+inteiro x = 2;
+escreva(x);
+escreva(x + 3 * (2 + 1));
+repete(inteiro i = 0; i < 3; i++) {
+    escreva(i);
+}
+"""
+        executar(sample)

@@ -10,7 +10,7 @@ programa
 
 // comandos: observação — expressões/atribuições/IO simples terminam em ';'
 comando
-    : declaracao
+    : declaracao ';'
     | atribuicao ';'
     | incremento ';'
     | entradaSaida ';'
@@ -24,7 +24,7 @@ bloco
     ;
 
 declaracao
-    : tipo ID ('=' expr)? ';'
+    : tipo ID ('=' expr)?
     ;
 
 tipo
@@ -45,7 +45,7 @@ condicional
 // inicialização pode ser declaracao OU atribuicao (ou vazio),
 // condicao pode ser uma expr (ou vazia), incremento pode ser atribuicao OU incremento (ou vazio)
 repeticao
-    : REPETE '(' (declaracao | atribuicao)? ';' expr? ';' (atribuicao | incremento)? ')' comando
+    : REPETE '(' (declaracao | atribuicao) ';' expr ';' (atribuicao | incremento) ')' comando
     ;
 
 entradaSaida
@@ -112,6 +112,9 @@ REPETE  : 'repete';
 ESCREVA : 'escreva';
 LEIA    : 'leia';
 
+// booleanos literais
+BOOL : 'verdadeiro' | 'falso' ;
+
 // operadores compostos e símbolos 
 INCREMENTO : '++' ;
 DECREMENTO : '--' ;
@@ -140,8 +143,6 @@ ID : [a-zA-Z_][a-zA-Z0-9_]* ;
 NUM_INT  : [0-9]+ ;
 NUM_REAL : [0-9]+ '.' [0-9]+ ;
 
-// booleanos literais
-BOOL : 'verdadeiro' | 'falso' ;
 
 // strings
 STRING
