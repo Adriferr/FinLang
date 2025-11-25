@@ -42,8 +42,8 @@ condicional
     : SE '(' expr ')' comando (SENAO comando)?
     ;
 
-// inicialização pode ser declaracao OU atribuicao (ou vazio),
-// condicao pode ser uma expr (ou vazia), incremento pode ser atribuicao OU incremento (ou vazio)
+// inicialização pode ser declaracao OU atribuicao,
+// condicao pode ser uma expr, incremento pode ser atribuicao OU incremento
 repeticao
     : REPETE '(' (declaracao | atribuicao) ';' expr ';' (atribuicao | incremento) ')' comando
     ;
